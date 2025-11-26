@@ -32,15 +32,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#0F172A",
   },
   title: {
-    fontSize: 32,
-    color: "#F8FAFC",
-    fontWeight: "bold",
-  },
-  subtitle: {
-    marginTop: 8,
-    fontSize: 16,
-    color: "#94A3B8",
-  },
+  fontSize: 32,
+  color: "#F8FAFC",
+  fontFamily: "Inter_700Bold",
+},
+
+subtitle: {
+  marginTop: 8,
+  fontSize: 16,
+  color: "#94A3B8",
+  fontFamily: "Inter_400Regular",
+},
+
   grid: {
   flexDirection: "row",
   flexWrap: "wrap",
