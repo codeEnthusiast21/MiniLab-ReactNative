@@ -6,12 +6,16 @@ import DiceScreen from "../screens/Dice/DiceScreen";
 import CurrencyScreen from "../screens/Currency/CurrencyScreen";
 import TicTacToeScreen from "../screens/TicTacToe/TicTacToeScreen";
 import MusicScreen from "../screens/Music/MusicScreen";
+import { NavigationContainer } from "@react-navigation/native";
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <NavigationContainer>
+    <Stack.Navigator
+     screenOptions={{ 
+      headerShown: false,}}>
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Password" component={PasswordScreen} />
       <Stack.Screen name="Background" component={BackgroundScreen} />
@@ -20,5 +24,6 @@ export default function AppNavigator() {
       <Stack.Screen name="TicTacToe" component={TicTacToeScreen} />
       <Stack.Screen name="Music" component={MusicScreen} />
     </Stack.Navigator>
+    </NavigationContainer>
   );
 }

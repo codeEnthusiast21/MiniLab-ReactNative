@@ -1,58 +1,16 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
-import Slider from "@react-native-community/slider";
-import { Audio } from "expo-av";
+import { View,Button, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import * as Animatable from "react-native-animatable";
+import { useAudioPlayer } from 'expo-audio';
+
 
 export default function MusicScreen() {
-  const sound = useRef<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(1);
 
-  async function loadAudio() {
-    const { sound: playbackObj } = await Audio.Sound.createAsync(
-      require("../../../assets/music/Samjho_Na.mp3"),
-      { shouldPlay: false },
-      updateStatus
-    );
-    sound.current = playbackObj;
-  }
-
-  function updateStatus(status: any) {
-    if (status.isLoaded) {
-      setPosition(status.positionMillis);
-      setDuration(status.durationMillis);
-      setIsPlaying(status.isPlaying);
-    }
-  }
-
-  async function togglePlay() {
-    if (!sound.current) return;
-
-    if (isPlaying) {
-      await sound.current.pauseAsync();
-    } else {
-      await sound.current.playAsync();
-    }
-  }
-
-  async function handleSeek(value: number) {
-    if (sound.current) {
-      await sound.current.setPositionAsync(value);
-    }
-  }
-
-  useEffect(() => {
-    loadAudio();
-    return () => {
-      if (sound.current) {
-        sound.current.unloadAsync();
-      }
-    };
-  }, []);
+const audioSource = require('../../../assets/music/Samjho_Na.mp3');
+  const player = useAudioPlayer(audioSource);
 
   return (
+     
     <View style={styles.container}>
       <Text style={styles.title}>Music Player</Text>
 
@@ -62,25 +20,14 @@ export default function MusicScreen() {
         animation="fadeIn"
         duration={500}
       />
-
-      <Text style={styles.trackName}>Sample Track</Text>
-      <Text style={styles.artist}>Artist Name</Text>
-
-      <Slider
-        style={styles.slider}
-        minimumValue={0}
-        maximumValue={duration}
-        value={position}
-        minimumTrackTintColor="#6366F1"
-        thumbTintColor="#6366F1"
-        onSlidingComplete={handleSeek}
+       <Button title="Play Sound" onPress={() => player.play()} />
+      <Button
+        title="Replay Sound"
+        onPress={() => {
+          player.seekTo(0);
+          player.play();
+        }}
       />
-
-      <TouchableOpacity style={styles.playButton} onPress={togglePlay}>
-        <Text style={styles.playButtonText}>
-          {isPlaying ? "Pause" : "Play"}
-        </Text>
-      </TouchableOpacity>
     </View>
   );
 }

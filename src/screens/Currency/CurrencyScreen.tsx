@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   label: {
-    color: "#F8FAFC",
+    color: "#d6d7d8ff",
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
     marginBottom: 6,
