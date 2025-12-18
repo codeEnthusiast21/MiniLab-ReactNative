@@ -1,33 +1,86 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 
-const RATES: Record<string, number> = {
-  USD: 1,
-  INR: 83,
-  EUR: 0.92,
-  GBP: 0.78,
-  JPY: 151.5,
+type Rates = {
+  [key: string]: number;
 };
 
+const CurrencyScreen: React.FC = () => {
+  const [amount, setAmount] = useState<string>("1");
+  const [from, setFrom] = useState<string>("USD");
+  const [to, setTo] = useState<string>("INR");
+  const [rates, setRates] = useState<Rates>({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default function CurrencyScreen() {
-  const [amount, setAmount] = useState("1");
-  const [from, setFrom] = useState("USD");
-  const [to, setTo] = useState("INR");
+  useEffect(() => {
+    fetchRates();
+  }, []);
 
-  function convert() {
-    const num = parseFloat(amount) || 0;
-    const usdValue = num / RATES[from];
-    const converted = usdValue * RATES[to];
+  const fetchRates = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(
+        "https://api.frankfurter.app/latest?from=USD"
+      );
+      const data = await response.json();
+
+      if (!data.rates) {
+        throw new Error("Rates missing");
+      }
+
+      setRates({
+        USD: 1,        // base currency
+        ...data.rates,
+      });
+    } catch (e) {
+      setError("Failed to fetch live exchange rates");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const convert = (): string => {
+    if (!rates[from] || !rates[to]) return "0.00";
+
+    const value = parseFloat(amount) || 0;
+    const usdValue = value / rates[from];
+    const converted = usdValue * rates[to];
+
     return converted.toFixed(2);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#6366F1" />
+      </View>
+    );
   }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.error}>{error}</Text>
+      </View>
+    );
+  }
+
+  const currencies = Object.keys(rates);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Currency Converter</Text>
 
-      {/* INPUT CARD */}
       <View style={styles.card}>
         <Text style={styles.label}>Amount</Text>
         <TextInput
@@ -42,32 +95,29 @@ export default function CurrencyScreen() {
         <Text style={[styles.label, { marginTop: 20 }]}>From</Text>
         <Picker
           selectedValue={from}
-          onValueChange={(v) => setFrom(v)}
+          onValueChange={setFrom}
           style={styles.picker}
-          dropdownIconColor="#F8FAFC"
         >
-          {Object.keys(RATES).map((k) => (
-            <Picker.Item label={k} value={k} key={k} color="#000" />
+          {currencies.map((c) => (
+            <Picker.Item key={c} label={c} value={c} />
           ))}
         </Picker>
 
         <Text style={[styles.label, { marginTop: 20 }]}>To</Text>
         <Picker
           selectedValue={to}
-          onValueChange={(v) => setTo(v)}
+          onValueChange={setTo}
           style={styles.picker}
-          dropdownIconColor="#F8FAFC"
         >
-          {Object.keys(RATES).map((k) => (
-            <Picker.Item label={k} value={k} key={k} color="#000" />
+          {currencies.map((c) => (
+            <Picker.Item key={c} label={c} value={c} />
           ))}
         </Picker>
       </View>
 
-      {/* RESULT CARD */}
       <View style={styles.resultCard}>
         <Text style={styles.resultText}>
-          {amount} {from} =  
+          {amount} {from} =
         </Text>
         <Text style={styles.converted}>
           {convert()} {to}
@@ -75,7 +125,9 @@ export default function CurrencyScreen() {
       </View>
     </View>
   );
-}
+};
+
+export default CurrencyScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -84,11 +136,17 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
   },
+  center: {
+    flex: 1,
+    backgroundColor: "#0F172A",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   title: {
     color: "#F8FAFC",
     fontSize: 26,
-    fontFamily: "Inter_700Bold",
     marginBottom: 30,
+    fontWeight: "700",
   },
   card: {
     backgroundColor: "#1E293B",
@@ -96,9 +154,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   label: {
-    color: "#d6d7d8ff",
+    color: "#CBD5E1",
     fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
     marginBottom: 6,
   },
   input: {
@@ -107,13 +164,10 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
   },
   picker: {
     backgroundColor: "#334155",
-    borderRadius: 10,
     color: "#F8FAFC",
-    marginTop: -5,
   },
   resultCard: {
     marginTop: 30,
@@ -124,12 +178,15 @@ const styles = StyleSheet.create({
   resultText: {
     color: "#94A3B8",
     fontSize: 16,
-    fontFamily: "Inter_400Regular",
   },
   converted: {
     color: "#F8FAFC",
     fontSize: 22,
     marginTop: 4,
-    fontFamily: "Inter_700Bold",
+    fontWeight: "700",
+  },
+  error: {
+    color: "#EF4444",
+    fontSize: 16,
   },
 });

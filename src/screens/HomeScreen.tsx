@@ -35,7 +35,6 @@ export default function HomeScreen() {
         },
       ]}
     >
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>MiniLab</Text>
         <Text style={styles.subtitle}>
@@ -43,7 +42,6 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {/* Grid */}
       <View style={styles.grid}>
         <AppCard
           title="Password Generator"
