@@ -1,54 +1,102 @@
-import * as Animatable from "react-native-animatable";
-import { Pressable, Text, StyleSheet } from "react-native";
+import React, { useRef } from "react";
+import {
+  Text,
+  StyleSheet,
+  Pressable,
+  Animated,
+} from "react-native";
 
-type Props = {
+type AppCardProps = {
   title: string;
-  onPress?: () => void;
+  icon?: React.ReactNode;
+  onPress: () => void;
+  delay?: number;
 };
 
-export default function AppCard({ title, onPress }: Props) {
+export default function AppCard({
+  title,
+  icon,
+  onPress,
+  delay = 0,
+}: AppCardProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(12)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 400,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 400,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const onPressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.96,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      friction: 4,
+      useNativeDriver: true,
+    }).start();
+  };
+
   return (
-    <Animatable.View
-      animation="fadeInUp"
-      duration={500}
-      easing="ease-out"
-      style={styles.card}
+    <Animated.View
+      style={[
+        styles.wrapper,
+        {
+          opacity,
+          transform: [{ translateY }, { scale }],
+        },
+      ]}
     >
       <Pressable
-        style={({ pressed }) => [styles.inner, pressed && styles.pressed]}
+        style={styles.card}
         onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
       >
+        {icon}
         <Text style={styles.title}>{title}</Text>
       </Pressable>
-    </Animatable.View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  wrapper: {
     width: "48%",
-    height: 120,
-    backgroundColor: "#1E293B",
+  },
+
+  card: {
+    backgroundColor: "#020617",
     borderRadius: 16,
-    marginBottom: 16,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#1E293B",
   },
-  inner: {
-    flex: 1,
-    padding: 16,
-    justifyContent: "flex-end",
-  },
-  pressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.97 }],
-  },
+
   title: {
-    color: "#F1F5F9",
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
+    marginTop: 12,
+    fontSize: 14,
+    color: "#E5E7EB",
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
