@@ -1,7 +1,7 @@
 # MiniLab 🧪  
 **A Modular React Native Playground (Expo + TypeScript)**
 
-MiniLab is a **feature-driven React Native application** built to practice and demonstrate **core mobile development concepts** through small, focused, real-world mini features — not boilerplate demos.
+MiniLab is a **feature-driven React Native application** built to practice and demonstrate **core mobile development concepts** through small, focused, real-world mini features.
 
 ---
 
