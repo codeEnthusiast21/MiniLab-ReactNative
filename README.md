@@ -1,11 +1,11 @@
-# MiniLab 🧪  
+# MiniLab 
 **A Modular React Native Playground (Expo + TypeScript)**
 
 MiniLab is a **feature-driven React Native application** built to practice and demonstrate **core mobile development concepts** through small, focused, real-world mini features.
 
 ---
 
-## ✨ What this project demonstrates
+## What this project demonstrates
 
 - **Core React Native concepts**  
   State management (`useState`, `useEffect`), navigation, side-effects, gestures, animations, audio, haptics, and API integration.
@@ -18,7 +18,7 @@ MiniLab is a **feature-driven React Native application** built to practice and d
 
 ---
 
-## 🧩 Features
+## Features
 
 - 🔐 **Password Generator** — configurable password logic  
 - 🎨 **Paint / Doodle Screen** — freehand drawing using gestures & SVG  
@@ -40,7 +40,7 @@ MiniLab is a **feature-driven React Native application** built to practice and d
 
 ---
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 - **React Native (Expo SDK 54)**
 - **TypeScript**
@@ -51,7 +51,7 @@ MiniLab is a **feature-driven React Native application** built to practice and d
 
 ---
 
-## 🎯 Why MiniLab?
+## Why MiniLab?
 
 > Instead of building one large app, MiniLab focuses on **understanding fundamentals deeply** by implementing multiple small features — each targeting a specific mobile development concept.
 
@@ -59,7 +59,7 @@ This makes it ideal as a **learning project**, **internship portfolio**, or **co
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ```bash
 git clone https://github.com/your-username/minilab.git
