@@ -38,7 +38,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>MiniLab</Text>
         <Text style={styles.subtitle}>
-          Small experiments. Clean architecture.
+          Small experiments.
         </Text>
       </View>
 
