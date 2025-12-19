@@ -4,7 +4,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  PanResponder,
+  Alert,
+  GestureResponderEvent,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import ViewShot from "react-native-view-shot";
@@ -35,62 +36,54 @@ export default function PaintScreen() {
   const [brushWidth, setBrushWidth] = useState(4);
   const [isEraser, setIsEraser] = useState(false);
 
-  const currentPath = useRef("");
+  const currentStrokeRef = useRef<Stroke | null>(null);
   const viewShotRef = useRef<ViewShot>(null);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+  const handleTouchStart = (e: GestureResponderEvent) => {
+    const { locationX, locationY } = e.nativeEvent;
+    
+    const color = isEraser ? "#020617" : currentColor;
+    const width = isEraser ? brushWidth * 2 : brushWidth;
+    
+    currentStrokeRef.current = {
+      path: `M ${locationX} ${locationY}`,
+      color: color,
+      width: width,
+    };
 
-      onPanResponderGrant: (e) => {
-        const { locationX, locationY } = e.nativeEvent;
-        currentPath.current = `M ${locationX} ${locationY}`;
-      },
+    setStrokes((prev) => [...prev, currentStrokeRef.current!]);
+    setRedoStack([]);
+  };
 
-      onPanResponderMove: (e) => {
-        const { locationX, locationY } = e.nativeEvent;
-        currentPath.current += ` L ${locationX} ${locationY}`;
+  const handleTouchMove = (e: GestureResponderEvent) => {
+    if (!currentStrokeRef.current) return;
 
-        setStrokes((prev) => [
-          ...prev.slice(0, -1),
-          {
-            path: currentPath.current,
-            color: isEraser ? "#020617" : currentColor,
-            width: brushWidth,
-          },
-        ]);
-      },
+    const { locationX, locationY } = e.nativeEvent;
+    currentStrokeRef.current.path += ` L ${locationX} ${locationY}`;
 
-      onPanResponderRelease: () => {
-        if (!currentPath.current) return;
+    setStrokes((prev) => {
+      const updated = [...prev];
+      updated[updated.length - 1] = { ...currentStrokeRef.current! };
+      return updated;
+    });
+  };
 
-        setStrokes((prev) => [
-          ...prev,
-          {
-            path: currentPath.current,
-            color: isEraser ? "#020617" : currentColor,
-            width: brushWidth,
-          },
-        ]);
-
-        currentPath.current = "";
-        setRedoStack([]);
-      },
-    })
-  ).current;
+  const handleTouchEnd = () => {
+    currentStrokeRef.current = null;
+  };
 
   const undo = () => {
-    if (!strokes.length) return;
+    if (strokes.length === 0) return;
     const last = strokes[strokes.length - 1];
-    setRedoStack((r) => [...r, last]);
-    setStrokes((s) => s.slice(0, -1));
+    setRedoStack((prev) => [...prev, last]);
+    setStrokes((prev) => prev.slice(0, -1));
   };
 
   const redo = () => {
-    if (!redoStack.length) return;
+    if (redoStack.length === 0) return;
     const last = redoStack[redoStack.length - 1];
-    setRedoStack((r) => r.slice(0, -1));
-    setStrokes((s) => [...s, last]);
+    setStrokes((prev) => [...prev, last]);
+    setRedoStack((prev) => prev.slice(0, -1));
   };
 
   const clear = () => {
@@ -99,13 +92,26 @@ export default function PaintScreen() {
   };
 
   const saveImage = async () => {
-    const permission = await MediaLibrary.requestPermissionsAsync();
-    if (!permission.granted) return;
+    try {
+      // Pass false to NOT request audio permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync(false);
+      
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please grant photo library access to save your artwork"
+        );
+        return;
+      }
 
-    const uri = await viewShotRef.current?.capture?.();
-    if (uri) {
-      await MediaLibrary.saveToLibraryAsync(uri);
-      alert("Saved to gallery");
+      const uri = await viewShotRef.current?.capture?.();
+      if (uri) {
+        await MediaLibrary.createAssetAsync(uri);
+        Alert.alert("Success!", "Your artwork has been saved to gallery");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      Alert.alert("Error", "Failed to save image. Please try again.");
     }
   };
 
@@ -114,15 +120,27 @@ export default function PaintScreen() {
       <Text style={styles.title}>Paint</Text>
 
       {/* CANVAS */}
-      <ViewShot ref={viewShotRef} style={styles.canvas}>
-        <View style={StyleSheet.absoluteFill} {...panResponder.panHandlers}>
+      <ViewShot 
+        ref={viewShotRef} 
+        style={styles.canvas} 
+        options={{ format: "png", quality: 1 }}
+      >
+        <View
+          style={StyleSheet.absoluteFill}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderGrant={handleTouchStart}
+          onResponderMove={handleTouchMove}
+          onResponderRelease={handleTouchEnd}
+          onResponderTerminate={handleTouchEnd}
+        >
           <Svg style={StyleSheet.absoluteFill}>
-            {strokes.map((s, i) => (
+            {strokes.map((stroke, index) => (
               <Path
-                key={i}
-                d={s.path}
-                stroke={s.color}
-                strokeWidth={s.width}
+                key={`stroke-${index}`}
+                d={stroke.path}
+                stroke={stroke.color}
+                strokeWidth={stroke.width}
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -134,19 +152,19 @@ export default function PaintScreen() {
 
       {/* COLORS */}
       <View style={styles.palette}>
-        {COLORS.map((c) => (
+        {COLORS.map((color) => (
           <TouchableOpacity
-            key={c}
+            key={color}
             style={[
-              styles.color,
+              styles.colorButton,
               {
-                backgroundColor: c,
-                borderWidth: currentColor === c ? 3 : 1,
-                borderColor: "#F8FAFC",
+                backgroundColor: color,
+                borderWidth: currentColor === color && !isEraser ? 4 : 2,
+                borderColor: currentColor === color && !isEraser ? "#6366F1" : "#475569",
               },
             ]}
             onPress={() => {
-              setCurrentColor(c);
+              setCurrentColor(color);
               setIsEraser(false);
             }}
           />
@@ -155,35 +173,67 @@ export default function PaintScreen() {
 
       {/* TOOLS */}
       <View style={styles.tools}>
-        <Tool label="Undo" onPress={undo} />
-        <Tool label="Redo" onPress={redo} />
-        <Tool
-          label="Eraser"
-          active={isEraser}
-          onPress={() => setIsEraser((p) => !p)}
+        <Tool 
+          label="Undo" 
+          onPress={undo} 
+          disabled={strokes.length === 0} 
         />
-        <Tool label="Save" onPress={saveImage} />
-        <Tool label="Clear" onPress={clear} />
+        <Tool 
+          label="Redo" 
+          onPress={redo} 
+          disabled={redoStack.length === 0} 
+        />
+        <Tool
+          label={isEraser ? "✓ Eraser" : "Eraser"}
+          active={isEraser}
+          onPress={() => setIsEraser(!isEraser)}
+        />
+        <Tool 
+          label="Save" 
+          onPress={saveImage} 
+        />
+        <Tool 
+          label="Clear" 
+          onPress={clear} 
+          disabled={strokes.length === 0} 
+        />
       </View>
 
-      {/* BRUSH */}
+      {/* BRUSH SIZES */}
       <View style={styles.brushRow}>
-        {[2, 4, 6, 8].map((s) => (
+        <Text style={styles.brushLabel}>
+          {isEraser ? "Eraser" : "Brush"} Size:
+        </Text>
+        {[2, 4, 6, 8].map((size) => (
           <TouchableOpacity
-            key={s}
+            key={size}
             style={[
-              styles.brushDot,
-              {
-                width: s * 4,
-                height: s * 4,
-                backgroundColor:
-                  brushWidth === s ? "#6366F1" : "#475569",
-              },
+              styles.brushContainer,
+              brushWidth === size && styles.brushContainerActive,
             ]}
-            onPress={() => setBrushWidth(s)}
-          />
+            onPress={() => setBrushWidth(size)}
+          >
+            <View
+              style={[
+                styles.brushDot,
+                {
+                  width: size * 3,
+                  height: size * 3,
+                  backgroundColor: brushWidth === size ? "#6366F1" : "#94A3B8",
+                },
+              ]}
+            />
+          </TouchableOpacity>
         ))}
       </View>
+
+      {/* COLOR INDICATOR */}
+      {!isEraser && (
+        <View style={styles.currentColorRow}>
+          <Text style={styles.currentColorLabel}>Current Color:</Text>
+          <View style={[styles.currentColorBox, { backgroundColor: currentColor }]} />
+        </View>
+      )}
     </View>
   );
 }
@@ -192,20 +242,27 @@ function Tool({
   label,
   onPress,
   active,
+  disabled,
 }: {
   label: string;
   onPress: () => void;
   active?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <TouchableOpacity
       style={[
         styles.toolBtn,
-        active && { backgroundColor: "#334155" },
+        active && styles.toolBtnActive,
+        disabled && styles.toolBtnDisabled,
       ]}
       onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.7}
     >
-      <Text style={styles.toolText}>{label}</Text>
+      <Text style={[styles.toolText, disabled && styles.toolTextDisabled]}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -214,58 +271,108 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#0F172A",
-    paddingTop: 40,
+    paddingTop: 50,
     paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   title: {
     color: "#F8FAFC",
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 16,
   },
   canvas: {
     flex: 1,
     backgroundColor: "#020617",
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: "#1E293B",
     overflow: "hidden",
+    marginBottom: 16,
   },
   palette: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 12,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
-  color: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  colorButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   tools: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginTop: 12,
+    marginBottom: 16,
+    gap: 8,
   },
   toolBtn: {
     backgroundColor: "#1E293B",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#334155",
+  },
+  toolBtnActive: {
+    backgroundColor: "#334155",
+    borderColor: "#6366F1",
+  },
+  toolBtnDisabled: {
+    opacity: 0.4,
   },
   toolText: {
     color: "#F8FAFC",
     fontSize: 14,
+    fontWeight: "600",
+  },
+  toolTextDisabled: {
+    color: "#64748B",
   },
   brushRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 8,
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  brushLabel: {
+    color: "#94A3B8",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  brushContainer: {
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  brushContainerActive: {
+    borderColor: "#6366F1",
+    backgroundColor: "#1E293B",
   },
   brushDot: {
-    marginHorizontal: 10,
     borderRadius: 999,
+  },
+  currentColorRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  currentColorLabel: {
+    color: "#94A3B8",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  currentColorBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#475569",
   },
 });

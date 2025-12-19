@@ -29,7 +29,14 @@
     "plugins": [
       "expo-font",
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Paint to save your artwork to photos.",
+          "savePhotosPermission": "Allow Paint to save your artwork to photos."
+        }
+      ]
     ]
   }
 }

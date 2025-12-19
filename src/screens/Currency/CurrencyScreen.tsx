@@ -39,7 +39,7 @@ const CurrencyScreen: React.FC = () => {
       }
 
       setRates({
-        USD: 1,        // base currency
+        USD: 1,        
         ...data.rates,
       });
     } catch (e) {
